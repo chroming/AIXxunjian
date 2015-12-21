@@ -34,5 +34,6 @@ def check_func(zz,logt):
 #get_machine_id = check_func('Machine Serial Number\:\ (\w{5,10})',prtconf)[0]
 get_hostname = check_func('Host Name: (\S*)',prtconf)[0]
 
-get_df = check_func('9\d\%')
-print(for df9 in get_df)
+get_df = check_func('9\d\%',df)
+for df9 in get_df:
+    print("目录占用情况")
