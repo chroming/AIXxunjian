@@ -3,6 +3,8 @@
 import re
 import os
 
+
+
 #输入判断
 def inputdir():
     logfile = raw_input("请输入同目录下的日志包文件夹名： ")
@@ -14,23 +16,27 @@ def inputdir():
 
 
 def logopen(logfile, name):
-    log = open('/Users/chroming/logtmp/log/%s/%s' % (logfile, name), 'r')
-    logr = log.read()
-    log.close()
-    return logr
+    try:
+        log = open('/Users/chroming/logtmp/log/%s/%s' % (logfile, name), 'r')
+        logr = log.read()
+        log.close()
+        return logr
+    except:
+        return ''
 
 
 def check_func(zz, logt):
-    get_data = re.findall(r'%s' % zz, logt)
+    #get_data = re.findall(r'%s' % zz, logt)
     try:
+        get_data = re.findall(r'%s' % zz, logt)
         get_data[0]
         return get_data
     except:
-        return '获取失败！'
+        return ['']
 
 
 #读取文件
-def mail(logfile):
+def maincheck(logfile):
     prtconf = logopen(logfile, 'hardware/prtconf.log')
     errpt = logopen(logfile, 'errpt/errpt.log')
     lsps = logopen(logfile, 'performance/lsps.txt')
@@ -45,7 +51,10 @@ def mail(logfile):
     ping = logopen(logfile, 'network/ping.log')
     sysdump = logopen(logfile, 'softwareutil/sysdumpdev.log')
     ps = logopen(logfile, 'softwareutil/ps.log')
-    lvlist = os.listdir('/Users/chroming/logtmp/log/%s/lvm/lv/'%logfile)
+    try:
+        lvlist = os.listdir('/Users/chroming/logtmp/log/%s/lvm/lv/'%logfile)
+    except:
+        lvlist = []
     lenlv = len(lvlist)
     leni = 0
     for lvs in lvlist:
@@ -69,28 +78,34 @@ def mail(logfile):
 
     # 获取所需信息
     get_hostname = check_func('Host Name: (\S*)', prtconf)[0]
+    print('=============================================================')
     print('序列号: %s'%serialnumber)
     print('-------------------------------------------------------------')
     print('主机名为: %s'%get_hostname)
     print('IP地址为: %s'%ip)
 
     #errpt
-    get_errpt = re.findall(r'\w{8} *(\d{10}) (\w) (\w)(.*?)', errpt)
+    get_errpt = check_func('\w{8} *(\d{10}) (\w) (\w)(.*?)', errpt)
     i = j = 0
-    if get_errpt == []:
-        print('系统无报错!')
-    else:
-        for errptsingle in get_errpt:
-            i += 1
-            if (errptsingle[2] == 'P') & (errptsingle[3] == 'H'):
-                j += 1
-    if i > 0:
-        if j > 0:
-            print('系统有%s条报错,其中有%s条硬件报错.最近一条报错时间为%s月%s日'%(i, j, get_errpt[0][0][0:1], get_errpt[0][0][2:3]))
+
+    try:
+        if get_errpt == []:
+            print('系统无报错!')
         else:
-            print('系统有%s条报错,无硬件报错.最近一条报错时间为%s月%s日'%(i, get_errpt[0][0][0:2], get_errpt[0][0][2:4]))
-    else:
-        print('系统无报错!')
+            for errptsingle in get_errpt:
+                i += 1
+                if (errptsingle[2] == 'P') & (errptsingle[3] == 'H'):
+                    j += 1
+        if i > 0:
+            if j > 0:
+                print('系统有%s条报错,其中有%s条硬件报错.最近一条报错时间为%s月%s日'%(i, j, get_errpt[0][0][0:1], get_errpt[0][0][2:3]))
+            else:
+                print('系统有%s条报错,无硬件报错.最近一条报错时间为%s月%s日'%(i, get_errpt[0][0][0:2], get_errpt[0][0][2:4]))
+        else:
+            print('系统无报错!')
+    except:
+        print('报错信息获取失败!')
+
     print('系统mail给root的错误报告: 正常')
     rootmirror = check_func('\w{2,3}', rootvgmirror)[0]
     print('操作系统镜像: %s'%rootmirror)
@@ -125,9 +140,12 @@ def mail(logfile):
         print ('I/O分布: %s%%'%get_io)
     except:
         print('I/O分布获取失败!')
-    freemem = float(check_func('\d+ +\d+ +\d+ +(\d+)', vmstat)[0])
-    memory = 100*(1 - (freemem/(98304*256)))
-    print('内存利用率: %.2f%%'%memory)
+    try:
+        freemem = float(check_func('\d+ +\d+ +\d+ +(\d+)', vmstat)[0])
+        memory = 100*(1 - (freemem/(98304*256)))
+        print('内存利用率: %.2f%%'%memory)
+    except:
+        print('内存利用率获取失败')
     print('交换区使用率: %s'%lsps)
 
     clcomd = re.search(r'cluster\/clcomd', ps)
@@ -142,11 +160,34 @@ def mail(logfile):
         print('检查监控资源是否有问题: 正常')
     else:
         print('检查监控资源是否有问题: N/A')
+    print('=============================================================')
 
-    choicenum = raw_input('输入1继续选择其他目录,输入其他退出,请输入代码: ')
-    if choicenum == str(1):
+
+    #判断是否是手动输入模式,如果是
+    if cnum == str(1):
+        choicenum = raw_input('输入1继续选择其他目录,输入其他退出,请输入代码: ')
+        if choicenum == str(1):
+            logfile = inputdir()
+            maincheck(logfile)
+
+
+def onebyone():
+    filelist = os.listdir('/Users/chroming/logtmp/log/')
+    for fileone in filelist:
+        if os.path.isdir('/Users/chroming/logtmp/log/%s'%fileone):
+            raw_input('按Enter显示目录%s内容'%fileone)
+            maincheck(fileone)
+
+
+def Main():
+    if cnum == str(1):
         logfile = inputdir()
-        mail(logfile)
+        return logfile
+    else:
+        logfile = onebyone()
+        return logfile
 
-logfile = inputdir()
-mail(logfile)
+
+cnum = raw_input("请输入需要使用的模式,1为手动输入日志目录,其他为自动获取目录下所有日志目录: ")
+logfile = Main()
+maincheck(logfile)
