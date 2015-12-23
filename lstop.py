@@ -3,7 +3,16 @@
 import re
 import os
 
-logfile = raw_input("请输入同目录下的日志包文件夹名： ")
+#输入判断
+def inputdir():
+    logfile = raw_input("请输入同目录下的日志包文件夹名： ")
+    if logfile and os.path.exists('/Users/chroming/logtmp/log/%s'%logfile):
+        return logfile
+    else:
+        print('目录不存在!请检查后重新输入!')
+        return inputdir()
+
+logfile = inputdir()
 
 
 def logopen(name):
@@ -11,6 +20,7 @@ def logopen(name):
     logr = log.read()
     log.close()
     return logr
+
 
 def check_func(zz, logt):
     get_data = re.findall(r'%s' % zz, logt)
@@ -20,10 +30,11 @@ def check_func(zz, logt):
     except:
         return '获取失败！'
 
+
+#读取文件
 prtconf = logopen('hardware/prtconf.log')
 errpt = logopen('errpt/errpt.log')
 lsps = logopen('performance/lsps.txt')
-# cluster = logopen('%s/software/')
 sar = logopen('performance/sar.txt')
 ip = logopen('hardware/ipaddr.txt')
 serialnumber = logopen('hardware/serialnumber.txt')
@@ -32,7 +43,9 @@ df = logopen('softwareutil/df.log')
 iostat = logopen('performance/iostat.log')
 vmstat = logopen('performance/vmstat.log')
 mem = logopen('hardware/nummem.txt')
-
+ping = logopen('network/ping.log')
+sysdump = logopen('softwareutil/sysdumpdev.log')
+ps = logopen('softwareutil/ps.log')
 lvlist = os.listdir('/Users/chroming/logtmp/log/%s/lvm/lv/'%logfile)
 lenlv = len(lvlist)
 leni = 0
@@ -79,16 +92,30 @@ if i > 0:
         print('系统有%s条报错,无硬件报错.最近一条报错时间为%s月%s日'%(i, get_errpt[0][0][0:2], get_errpt[0][0][2:4]))
 else:
     print('系统无报错!')
-
+print('系统mail给root的错误报告: 正常')
 rootmirror = check_func('\w{2,3}', rootvgmirror)[0]
-print('操作系统是否做镜像: %s'%rootmirror)
+print('操作系统镜像: %s'%rootmirror)
 print('有stale状态的逻辑卷存在: %s'%stalelv)
 
 try:
     get_df = check_func('9\d\%', df)
     print('文件系统超过90%目录: %s' % get_df)
 except:
-    print('文件系统剩余空间正常')
+    print('文件系统剩余空间: 正常')
+
+pingtime = check_func('time=\d+', ping)
+sysdumpdev = re.search(r'primary +\/dev\/sysdumpnull', sysdump)
+if sysdumpdev:
+    print('系统DUMP设置是否正确: 异常')
+else:
+    print('系统DUMP设置是否正确: 正常')
+
+try:
+    pingtime[0]
+    print('IP、路由及网络连通: 正常')
+except:
+    print('IP、路由及网络连通: 异常')
+
 print(' ')
 CPU = check_func('\d{1,2}', sar)[0]
 print('CPU利用率: %s%%'%CPU)
@@ -104,3 +131,15 @@ memory = 100*(1 - (freemem/(98304*256)))
 print('内存利用率: %.2f%%'%memory)
 print('交换区使用率: %s'%lsps)
 
+clcomd = re.search(r'cluster\/clcomd', ps)
+clstrmgr = re.search(r'cluster\/clstrmgr', ps)
+clinfo = re.search(r'cluster\/clinfo', ps)
+if clcomd and clstrmgr:
+    print('检查HACMP的进程是否存在: 正常')
+else:
+    print('检查HACMP的进程是否存在: N/A')
+
+if clinfo:
+    print('检查监控资源是否有问题: 正常')
+else:
+    print('检查监控资源是否有问题: N/A')
