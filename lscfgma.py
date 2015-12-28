@@ -3,7 +3,7 @@
 import re
 import os
 import xlwt
-
+fi = 0
 file = xlwt.Workbook(encoding = 'utf-8')
 table = file.add_sheet('sheet1')
 
@@ -94,17 +94,19 @@ def get_info(x,y,lscfgt):
 
 #获取目录下所有文件
 def onebyone():
+    global fi
     x=y=0
     filelist = os.listdir('/Users/chroming/logtmp/ma/')
     for fileone in filelist:
         if fileone[0] != '.':
-            print('正在获取%s信息'%fileone)
-            filelog = open('/Users/chroming/logtmp/ma/%s'%fileone)
+            filelog = open('%s'%fileone)
             file = filelog.read()
             filelog.close()
-            x,y,get_model = get_info(x,y,file)
-            x,y = get_hdisk(x,y,file,get_model)
-
+            if re.findall(r'Model\: *IBM\,(\d\S*)',file) != []:
+                print('开始获取%s信息'%fileone)            
+                x,y,get_model = get_info(x,y,file)
+                x,y = get_hdisk(x,y,file,get_model)
+                fi += 1
 
 onebyone()
 
