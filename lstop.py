@@ -37,11 +37,12 @@ def check_func(zz, logt):
 
 #读取文件
 def maincheck(logfile):
+    lpar = logopen(logfile, '/hardware/lparinfo.txt')
     prtconf = logopen(logfile, 'hardware/prtconf.log')
     errpt = logopen(logfile, 'errpt/errpt.log')
     lsps = logopen(logfile, 'performance/lsps.txt')
     sar = logopen(logfile, 'performance/sar.txt')
-    ip = logopen(logfile, 'hardware/ipaddr.txt')
+    #ip = logopen(logfile, 'hardware/ipaddr.txt')
     serialnumber = logopen(logfile, 'hardware/serialnumber.txt')
     rootvgmirror = logopen(logfile, 'software/rootvg_mirror.txt')
     df = logopen(logfile, 'softwareutil/df.log')
@@ -79,9 +80,12 @@ def maincheck(logfile):
     # 获取所需信息
     get_hostname = check_func('Host Name: (\S*)', prtconf)[0]
     print('=============================================================')
+    print logfile
     print('序列号: %s'%serialnumber)
     print('-------------------------------------------------------------')
+    print('分区ID分区名: %s'%lpar)
     print('主机名为: %s'%get_hostname)
+    ip = check_func('IP Address: *(\S*)',prtconf)[0]
     print('IP地址为: %s'%ip)
 
     #errpt
@@ -89,8 +93,8 @@ def maincheck(logfile):
     i = j = 0
 
     try:
-        if get_errpt == []:
-            print('系统无报错!')
+        if get_errpt == ['']:
+            pass
         else:
             for errptsingle in get_errpt:
                 i += 1
@@ -135,7 +139,7 @@ def maincheck(logfile):
     print('CPU利用率: %s%%'%CPU)
 
     try:
-        ios = check_func('tty: *tin *tout *avg-cpu: *\% *user *\% *sys *\% *idle *\% *iowait\s*(?:\d{1,2}\.\d{1,2} *){4}(\d{1,2}\.\d{1,2})',iostat)
+        ios = check_func('tty: *tin *tout *avg-cpu: *\% *user *\% *sys *\% *idle *\% *iowait.{0,20}\s*(?:\d{1,4}\.\d{1,2} *){4}(\d{1,2}\.\d{1,2})', iostat)
         get_io = 100 - float(ios[0])
         print ('I/O分布: %s%%'%get_io)
     except:
